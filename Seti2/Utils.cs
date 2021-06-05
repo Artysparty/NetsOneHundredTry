@@ -89,5 +89,24 @@ namespace Seti2
             resp.Data = new BitArray(16);
             return resp;
         }
+
+
+        public static List<byte[]> SplitFile(byte[] source)
+        {
+            int offset = 0;
+            List<byte[]> list = new List<byte[]>();
+            while (offset + 8 < source.Length)
+            {
+                list.Add(source.Skip(offset).Take(8).ToArray());
+                offset += 8;
+            }
+
+            if (offset < source.Length)
+            {
+                list.Add(source.Skip(offset).Take(source.Length - offset).ToArray());
+            }
+
+            return list;
+        }
     }
 }

@@ -44,23 +44,56 @@ namespace Seti2
                 _sendSemaphore.Release();
             }
 
-            _receiveSemaphore.WaitOne();
-            ConsoleHelper.WriteToConsole("2 поток", "Ожидаю кадр.");
-
-            for (int i = 0; i < _receivedMessages.Length; i++)
+            //обработка файла
+            while (true)
             {
-                ConsoleHelper.WriteToConsoleArray("Кадр", _receivedMessages[i]);
+                _receiveSemaphore.WaitOne();
+                ConsoleHelper.WriteToConsole("2 поток", "Ожидаю кадр.");
+
+                for (int i = 0; i < _receivedMessages.Length; i++)
+                {
+                    ConsoleHelper.WriteToConsoleArray("Кадр", _receivedMessages[i]);
+                }
+
+                var response = new Frame();
+
+                response.Control = new BitArray(16);
+                response.Control.Write(0, Utils.DecimalToBinary(32));
+                response.Checksum = Utils.DecimalToBinary(0);
+                response.Data = new BitArray(16);
+
+                _post(new[] { response.ToBitArray() });
+                _sendSemaphore.Release();
+
+                var receipt = Frame.Parse(_receivedMessages[0]);
+
+                byte[] control = new byte[2];
+                receipt.Control.CopyTo(control, 0);
+
+                if (control[0] == 90)
+                {
+                    ConsoleHelper.WriteToConsole("1 поток", "Получен конец");
+                    break;
+                }
             }
 
-            var response = new Frame();
+            // _receiveSemaphore.WaitOne();
+            // ConsoleHelper.WriteToConsole("2 поток", "Ожидаю кадр.");
 
-            response.Control = new BitArray(16);
-            response.Control.Write(0, Utils.DecimalToBinary(32));
-            response.Checksum = Utils.DecimalToBinary(0);
-            response.Data = new BitArray(16);
+            // for (int i = 0; i < _receivedMessages.Length; i++)
+            // {
+            //     ConsoleHelper.WriteToConsoleArray("Кадр", _receivedMessages[i]);
+            // }
 
-            _post(new[] { response.ToBitArray() });
-            _sendSemaphore.Release();
+            // var response = new Frame();
+
+            // response.Control = new BitArray(16);
+            // response.Control.Write(0, Utils.DecimalToBinary(32));
+            // response.Checksum = Utils.DecimalToBinary(0);
+            // response.Data = new BitArray(16);
+
+            // _post(new[] { response.ToBitArray() });
+            // _sendSemaphore.Release();
         }
 
         public void ReceiveData(BitArray[] arrays)

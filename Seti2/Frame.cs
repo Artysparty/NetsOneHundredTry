@@ -46,7 +46,6 @@ namespace Seti2
 
         public static BitArray CreateFrameBitArray()
         {
-            //переменная длина
 
             Frame frame = new Frame();
 
