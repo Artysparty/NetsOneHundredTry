@@ -32,14 +32,12 @@ namespace Seti2
 
             ConsoleHelper.WriteToConsole("1 поток", "Начинаю работу.");
 
-            // TODO: build frames
-
             var connection = new Frame();
 
             connection.Control = new BitArray(16);
             connection.Control.Write(0, Utils.DecimalToBinary(200));
             connection.Checksum = Utils.DecimalToBinary(0);
-            connection.Data = new BitArray(16);
+            connection.Data = new BitArray(1);
 
             _post(new[] { connection.ToBitArray() });
 
@@ -49,8 +47,6 @@ namespace Seti2
             _receiveSemaphore.WaitOne();
 
             ConsoleHelper.WriteToConsole("1 поток", "Получаю ответ");
-
-            // TODO: Check all received messages
 
             var connectionFrame = Frame.Parse(_receivedMessages[0]);
 
@@ -67,56 +63,82 @@ namespace Seti2
                 System.Environment.Exit(-1);
             }
 
-            var fileBytes = File.ReadAllBytes("C:\\Users\\artem\\Dropbox\\Мой ПК (LAPTOP-V6M1QK29)\\Desktop\\text.txt");
+            var fileBytes = File.ReadAllBytes("C:\\Users\\artem\\Dropbox\\Мой ПК (LAPTOP-V6M1QK29)\\Desktop\\Nets\\text.txt");
 
             var split = Utils.SplitFile(fileBytes);
             //отправка файла
-            foreach (var s in split)
+
+
+            // foreach (var s in split)
+            // {
+            //     Frame frame = new Frame();
+
+            //     frame.Control = new BitArray(16);
+
+            //     frame.Data = new BitArray(s);
+
+            //     frame.Checksum = Utils.DecimalToBinary(Utils.CheckSum(frame.Data));
+
+            //     var frameBitArr = frame.ToBitArray();
+            //     _post(new[] { frameBitArr });
+            //     _sendSemaphore.Release();
+
+            //     _receiveSemaphore.WaitOne();
+
+            //     ConsoleHelper.WriteToConsole("1 поток", "Ожидаю квитанцию.");
+
+            //     var receipt = Frame.Parse(_receivedMessages[0]);
+
+            //     byte[] control = new byte[2];
+            //     receipt.Control.CopyTo(control, 0);
+
+            //     if (control[0] == 31)
+            //     {
+            //         ConsoleHelper.WriteToConsole("1 поток", "Квитанция true получена.");
+            //     }
+            //     else if (control[0] == 32)
+            //     {
+            //         ConsoleHelper.WriteToConsole("1 поток", "Квитанция false получена.");
+            //     }
+            // }
+
+            // var endFrame = new Frame();
+
+            // endFrame.Control = new BitArray(16);
+            // endFrame.Control.Write(0, Utils.DecimalToBinary(90));
+            // endFrame.Checksum = Utils.DecimalToBinary(0);
+            // endFrame.Data = new BitArray(16);
+
+            // _post(new[] { endFrame.ToBitArray() });
+
+            // _sendSemaphore.Release();
+
+            // _receiveSemaphore.WaitOne();
+
+            Random random = new Random();
+
+            var message = new Frame();
+
+            message.Control = new BitArray(16);
+            message.Control.Write(0, Utils.DecimalToBinary(31));
+
+            message.Data = new BitArray(random.Next(32, 65));
+            for (int i = 0; i < message.Data.Length; i++)
             {
-                Frame frame = new Frame();
-
-                frame.Control = new BitArray(16);
-
-                frame.Data = new BitArray(s);
-
-                frame.Checksum = Utils.DecimalToBinary(Utils.CheckSum(frame.Data));
-
-                var frameBitArr = frame.ToBitArray();
-                _post(new[] { frameBitArr });
-                _sendSemaphore.Release();
-
-                _receiveSemaphore.WaitOne();
-
-                ConsoleHelper.WriteToConsole("1 поток", "Ожидаю квитанцию.");
-
-                var receipt = Frame.Parse(_receivedMessages[0]);
-
-                byte[] control = new byte[2];
-                receipt.Control.CopyTo(control, 0);
-
-                if (control[0] == 31)
+                if (random.Next(0, 1000) > 500)
                 {
-                    ConsoleHelper.WriteToConsole("1 поток", "Квитанция true получена.");
-                }
-                else if (control[0] == 32)
-                {
-                    ConsoleHelper.WriteToConsole("1 поток", "Квитанция false получена.");
+                    message.Data[i] = true;
                 }
             }
+            message.Checksum = Utils.DecimalToBinary(Utils.CheckSum(message.Data));
 
-            var endFrame = new Frame();
+            //Инверсия бита
+            message.Data[random.Next(0, message.Data.Length)] ^= true;
 
-            endFrame.Control = new BitArray(16);
-            endFrame.Control.Write(0, Utils.DecimalToBinary(90));
-            endFrame.Checksum = Utils.DecimalToBinary(0);
-            endFrame.Data = new BitArray(16);
-
-            _post(new[] { endFrame.ToBitArray() });
-
+            _post(new[] { message.ToBitArray() });
             _sendSemaphore.Release();
 
-            _receiveSemaphore.WaitOne();
-
+            //отправка послед-ти кадров
             // BitArray[] bitArrays = new BitArray[5];
 
             // for (int i = 0; i < 5; i++)
@@ -128,23 +150,40 @@ namespace Seti2
             // _post(bitArrays);
             // _sendSemaphore.Release();
 
-            // _receiveSemaphore.WaitOne();
+            _receiveSemaphore.WaitOne();
 
-            // ConsoleHelper.WriteToConsole("1 поток", "Ожидаю квитанцию.");
+            ConsoleHelper.WriteToConsole("1 поток", "Ожидаю квитанцию.");
 
-            // var receipt = Frame.Parse(_receivedMessages[0]);
+            var receipt = Frame.Parse(_receivedMessages[0]);
 
-            // byte[] control = new byte[2];
-            // receipt.Control.CopyTo(control, 0);
+            byte[] control = new byte[2];
+            receipt.Control.CopyTo(control, 0);
 
-            // if (control[0] == 31)
-            // {
-            //     ConsoleHelper.WriteToConsole("1 поток", "Квитанция true получена.");
-            // }
-            // else if (control[0] == 32)
-            // {
-            //     ConsoleHelper.WriteToConsole("1 поток", "Квитанция false получена.");
-            // }
+            if (control[0] == 31)
+            {
+                ConsoleHelper.WriteToConsole("1 поток", "Квитанция true получена.");
+            }
+            else if (control[0] == 32)
+            {
+                ConsoleHelper.WriteToConsole("1 поток", "Квитанция false получена.");
+                var trueMessage = new Frame();
+
+                trueMessage.Control = new BitArray(16);
+                trueMessage.Control.Write(0, Utils.DecimalToBinary(31));
+
+                trueMessage.Data = new BitArray(random.Next(32, 65));
+                for (int i = 0; i < message.Data.Length; i++)
+                {
+                    if (random.Next(0, 1000) > 500)
+                    {
+                        trueMessage.Data[i] = true;
+                    }
+                }
+                trueMessage.Checksum = Utils.DecimalToBinary(Utils.CheckSum(message.Data));
+                
+                _post(new[] { message.ToBitArray() });
+                _sendSemaphore.Release();
+            }
         }
 
         public void ReceiveData(BitArray[] arrays)

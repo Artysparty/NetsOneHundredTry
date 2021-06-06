@@ -19,7 +19,6 @@ namespace Seti2
                     k += 1;
                 }
             }
-
             return k;
         }
 
@@ -107,6 +106,13 @@ namespace Seti2
             }
 
             return list;
+        }
+
+        public static bool CompareBitArrays(BitArray arr1, BitArray arr2){
+            for (int i = 0; i < arr1.Length; i++){
+                if (arr1[i] != arr2[i]) return false;
+            } 
+            return true;
         }
     }
 }

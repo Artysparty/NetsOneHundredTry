@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections;
 using System.Threading;
-using Seti2;
 
 namespace Seti2
 {
@@ -45,55 +44,78 @@ namespace Seti2
             }
 
             //обработка файла
-            while (true)
-            {
-                _receiveSemaphore.WaitOne();
-                ConsoleHelper.WriteToConsole("2 поток", "Ожидаю кадр.");
-
-                for (int i = 0; i < _receivedMessages.Length; i++)
-                {
-                    ConsoleHelper.WriteToConsoleArray("Кадр", _receivedMessages[i]);
-                }
-
-                var response = new Frame();
-
-                response.Control = new BitArray(16);
-                response.Control.Write(0, Utils.DecimalToBinary(32));
-                response.Checksum = Utils.DecimalToBinary(0);
-                response.Data = new BitArray(16);
-
-                _post(new[] { response.ToBitArray() });
-                _sendSemaphore.Release();
-
-                var receipt = Frame.Parse(_receivedMessages[0]);
-
-                byte[] control = new byte[2];
-                receipt.Control.CopyTo(control, 0);
-
-                if (control[0] == 90)
-                {
-                    ConsoleHelper.WriteToConsole("1 поток", "Получен конец");
-                    break;
-                }
-            }
-
-            // _receiveSemaphore.WaitOne();
-            // ConsoleHelper.WriteToConsole("2 поток", "Ожидаю кадр.");
-
-            // for (int i = 0; i < _receivedMessages.Length; i++)
+            // while (true)
             // {
-            //     ConsoleHelper.WriteToConsoleArray("Кадр", _receivedMessages[i]);
+            //     _receiveSemaphore.WaitOne();
+            //     ConsoleHelper.WriteToConsole("2 поток", "Ожидаю кадр.");
+
+            //     for (int i = 0; i < _receivedMessages.Length; i++)
+            //     {
+            //         ConsoleHelper.WriteToConsoleArray("Кадр", _receivedMessages[i]);
+            //     }
+
+            //     var response = new Frame();
+
+            //     response.Control = new BitArray(16);
+            //     response.Control.Write(0, Utils.DecimalToBinary(31));
+            //     response.Checksum = Utils.DecimalToBinary(0);
+            //     response.Data = new BitArray(16);
+
+            //     _post(new[] { response.ToBitArray() });
+            //     _sendSemaphore.Release();
+
+            //     var receipt = Frame.Parse(_receivedMessages[0]);
+
+            //     byte[] control = new byte[2];
+            //     receipt.Control.CopyTo(control, 0);
+
+            //     if (control[0] == 90)
+            //     {
+            //         ConsoleHelper.WriteToConsole("1 поток", "Получен конец");
+            //         break;
+            //     }
             // }
 
-            // var response = new Frame();
+            _receiveSemaphore.WaitOne();
 
-            // response.Control = new BitArray(16);
-            // response.Control.Write(0, Utils.DecimalToBinary(32));
-            // response.Checksum = Utils.DecimalToBinary(0);
-            // response.Data = new BitArray(16);
+            ConsoleHelper.WriteToConsole("2 поток", "Ожидаю кадр.");
 
-            // _post(new[] { response.ToBitArray() });
-            // _sendSemaphore.Release();
+            for (int i = 0; i < _receivedMessages.Length; i++)
+            {
+                ConsoleHelper.WriteToConsoleArray("Кадр", _receivedMessages[i]);
+                var part = Frame.Parse(_receivedMessages[i]);
+
+                var realChecksum = Utils.DecimalToBinary(Utils.CheckSum(part.Data));
+
+                if (Utils.CompareBitArrays(realChecksum, part.Checksum))
+                {
+                    //контрольные суммы совпали
+                    var response = new Frame();
+
+                    response.Control = new BitArray(16);
+                    response.Control.Write(0, Utils.DecimalToBinary(31));
+                    response.Checksum = Utils.DecimalToBinary(0);
+                    response.Data = new BitArray(16);
+
+                    _post(new[] { response.ToBitArray() });
+                    _sendSemaphore.Release();
+                }
+                else
+                {
+                    var response = new Frame();
+
+                    response.Control = new BitArray(16);
+                    response.Control.Write(0, Utils.DecimalToBinary(32));
+                    response.Checksum = Utils.DecimalToBinary(0);
+                    response.Data = new BitArray(16);
+
+                    _post(new[] { response.ToBitArray() });
+                    _sendSemaphore.Release();
+
+                    _receiveSemaphore.WaitOne();
+                    ConsoleHelper.WriteToConsoleArray("Кадр", _receivedMessages[i]);
+                }
+            }
         }
 
         public void ReceiveData(BitArray[] arrays)
